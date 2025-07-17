@@ -83,7 +83,13 @@ func (m *Migrator) migrateUsersRange(startOffset, limit, batchSize int) error {
 					originalUsername, createReq.Username)
 			}
 
-			log.Printf("Processing user %d: %s", offset+i+1, processed.Username)
+			// Log volume calculation details
+			if user.MarzbanUser.DataLimit > 0 {
+				log.Printf("Processing user %d: %s (Original limit: %d bytes, Used: %d bytes, Remaining: %d bytes)",
+					offset+i+1, processed.Username, user.MarzbanUser.DataLimit, user.MarzbanUser.UsedTraffic, createReq.TrafficLimitBytes)
+			} else {
+				log.Printf("Processing user %d: %s (No data limit)", offset+i+1, processed.Username)
+			}
 
 			err := m.destination.CreateUser(createReq)
 			if err != nil {

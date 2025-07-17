@@ -1,10 +1,10 @@
 package models
 
 import (
+	"log"
 	"remnawave-migrate/util"
 	"strings"
 	"time"
-	"log"
 )
 
 type UsersResponse struct {
@@ -41,16 +41,17 @@ type MarzbanProxies struct {
 }
 
 type MarzbanUser struct {
-	Proxies                MarzbanProxies `json:"proxies"`
-	CreatedAt              string         `json:"created_at"`
-	Expire                 int64          `json:"expire"`
-	DataLimit              int64          `json:"data_limit"`
-	DataLimitResetStrategy string         `json:"data_limit_reset_strategy"`
+	Proxies                MarzbanProxies      `json:"proxies"`
+	CreatedAt              string              `json:"created_at"`
+	Expire                 int64               `json:"expire"`
+	DataLimit              int64               `json:"data_limit"`
+	UsedTraffic            int64               `json:"used_traffic"`
+	DataLimitResetStrategy string              `json:"data_limit_reset_strategy"`
 	Inbounds               map[string][]string `json:"inbounds"`
-	Note                   string         `json:"note"`
-	Username               string         `json:"username"`
-	Status                 string         `json:"status"`
-	SubscriptionURL        string         `json:"subscription_url"`
+	Note                   string              `json:"note"`
+	Username               string              `json:"username"`
+	Status                 string              `json:"status"`
+	SubscriptionURL        string              `json:"subscription_url"`
 }
 
 type MarzbanUsersResponse struct {
@@ -59,18 +60,19 @@ type MarzbanUsersResponse struct {
 }
 
 type ProcessedUser struct {
-	CreatedAt              string `json:"created_at"`
-	Expire                 string `json:"expire"`
-	DataLimit              int64  `json:"data_limit"`
-	DataLimitResetStrategy string `json:"data_limit_reset_strategy"`
+	CreatedAt              string   `json:"created_at"`
+	Expire                 string   `json:"expire"`
+	DataLimit              int64    `json:"data_limit"`
+	RemainingVolume        int64    `json:"remaining_volume"`
+	DataLimitResetStrategy string   `json:"data_limit_reset_strategy"`
 	InboundTags            []string `json:"inbounds"`
-	Note                   string `json:"note"`
-	Username               string `json:"username"`
-	Status                 string `json:"status"`
-	VlessID                string `json:"vless_id"`
-	TrojanPassword         string `json:"trojan_password"`
-	ShadowsocksPassword    string `json:"shadowsocks_password"`
-	SubscriptionHash       string `json:"subscription_hash"`
+	Note                   string   `json:"note"`
+	Username               string   `json:"username"`
+	Status                 string   `json:"status"`
+	VlessID                string   `json:"vless_id"`
+	TrojanPassword         string   `json:"trojan_password"`
+	ShadowsocksPassword    string   `json:"shadowsocks_password"`
+	SubscriptionHash       string   `json:"subscription_hash"`
 }
 
 func (u *MarzbanUser) Process() ProcessedUser {
@@ -100,10 +102,17 @@ func (u *MarzbanUser) Process() ProcessedUser {
 		parsedCreatedAt = time.Now().UTC()
 	}
 
+	// Calculate remaining volume: data_limit - used_traffic
+	remainingVolume := u.DataLimit - u.UsedTraffic
+	if remainingVolume < 0 {
+		remainingVolume = 0
+	}
+
 	return ProcessedUser{
 		CreatedAt:              parsedCreatedAt.Format("2006-01-02T15:04:05.000Z"),
 		Expire:                 expireTime.Format("2006-01-02T15:04:05.000Z"),
 		DataLimit:              u.DataLimit,
+		RemainingVolume:        remainingVolume,
 		DataLimitResetStrategy: u.DataLimitResetStrategy,
 		Note:                   u.Note,
 		InboundTags:            inboundTags,
@@ -153,7 +162,7 @@ func (p *ProcessedUser) ToCreateUserRequest(preferredStrategy string, preserveSt
 	req := CreateUserRequest{
 		Username:             validUsername,
 		Status:               status,
-		TrafficLimitBytes:    p.DataLimit,
+		TrafficLimitBytes:    p.RemainingVolume,
 		TrafficLimitStrategy: strategy,
 		ActiveUserInbounds:   []string{},
 		ExpireAt:             p.Expire,

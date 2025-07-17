@@ -20,6 +20,7 @@ This tool helps you migrate user accounts from various VPN management panels to 
 - Customizable traffic reset strategy
 - Flexible status handling
 - Support for custom headers in both source and destination panels
+- **Marzban**: Automatic calculation of remaining traffic volume (data_limit - used_traffic)
 
 ## Migrated User Fields
 
@@ -31,7 +32,7 @@ This tool helps you migrate user accounts from various VPN management panels to 
 | TrojanPassword       | Password for Trojan protocol                            |
 | VlessUUID            | UUID for VLESS protocol                                 |
 | SsPassword           | Password for Shadowsocks protocol                       |
-| TrafficLimitBytes    | Traffic limit in bytes                                  |
+| TrafficLimitBytes    | Remaining traffic limit in bytes (data_limit - used_traffic) |
 | TrafficLimitStrategy | Traffic reset strategy                                  |
 | activeUserInbounds   | Array of UUIDs representing enabled inbound connections |
 | ExpireAt             | Account expiration date (UTC)                           |
